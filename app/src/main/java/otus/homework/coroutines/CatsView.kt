@@ -13,18 +13,18 @@ class CatsView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : ConstraintLayout(context, attrs, defStyleAttr), ICatsView {
+) : ConstraintLayout(context, attrs, defStyleAttr) {
 
-    var presenter: CatsPresenter? = null
+    var viewModel: CatsViewModel? = null
 
     override fun onFinishInflate() {
         super.onFinishInflate()
         findViewById<Button>(R.id.button).setOnClickListener {
-            presenter?.onInitComplete()
+            viewModel?.onInitComplete()
         }
     }
 
-    override fun populate(presentationModel: PresentationModel) {
+    fun populate(presentationModel: PresentationModel) {
         findViewById<TextView>(R.id.fact_textView).text = presentationModel.fact
         Picasso
             .get()
@@ -32,7 +32,7 @@ class CatsView @JvmOverloads constructor(
             .into(findViewById<ImageView>(R.id.cat_imageView))
     }
 
-    override fun showToast(message: String) {
+    fun showToast(message: String) {
         Toast
             .makeText(
                 context,

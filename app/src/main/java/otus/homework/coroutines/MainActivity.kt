@@ -2,12 +2,20 @@ package otus.homework.coroutines
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var catsPresenter: CatsPresenter
-
     private val diContainer = DiContainer()
+
+    private val viewModel: CatsViewModel by viewModels {
+        CatsViewModelFactory(
+            catsService = diContainer.service,
+            catsImageService = diContainer.imageService
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -15,22 +23,23 @@ class MainActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(R.layout.activity_main, null) as CatsView
         setContentView(view)
 
-        catsPresenter = CatsPresenter(
-            catsService = diContainer.service,
-            catsImageService = diContainer.imageService
-        )
-        view.presenter = catsPresenter
-        catsPresenter.attachView(view)
-        catsPresenter.onInitComplete()
-    }
+        view.viewModel = viewModel
+        viewModel.onInitComplete()
 
-    override fun onStop() {
-        catsPresenter.cancelJob()
+        lifecycleScope.launch {
+            viewModel.presentationState.collect { result ->
+                when (result) {
+                    is Result.Success -> {
+                        view.populate(result.data)
+                    }
 
-        if (isFinishing) {
-            catsPresenter.detachView()
+                    is Result.Error -> {
+                        view.showToast(result.message)
+                    }
+
+                    else -> {}
+                }
+            }
         }
-
-        super.onStop()
     }
 }
