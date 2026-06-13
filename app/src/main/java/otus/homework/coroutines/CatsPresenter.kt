@@ -4,12 +4,14 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.net.SocketTimeoutException
 import kotlin.coroutines.CoroutineContext
 
 class CatsPresenter(
-    private val catsService: CatsService
+    private val catsService: CatsService,
+    private val catsImageService: CatsImageService
 ) {
 
     private var _catsView: ICatsView? = null
@@ -20,8 +22,19 @@ class CatsPresenter(
 
         presenterScope.launch {
             try {
-                val fact = catsService.getCatFact()
-                _catsView?.populate(fact)
+                val factDeferred = async(Dispatchers.IO) {
+                    catsService.getCatFact()
+                }
+                val imageDeferred = async(Dispatchers.IO) {
+                    catsImageService.getCatImage()
+                }
+
+                val fact = factDeferred.await()
+                val image = imageDeferred.await()
+
+                val presentationModel = PresentationModel(fact = fact.fact, imageUrl = image[0].url)
+                _catsView?.populate(presentationModel)
+
             } catch (_: SocketTimeoutException) {
                 _catsView?.showToast("Не удалось получить ответ от сервера")
             } catch (e: Exception) {
